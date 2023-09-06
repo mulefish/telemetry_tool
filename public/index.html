@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="common.js"></script>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <link rel="stylesheet" href="style.css">
+  <script>
+    const LOCAL_STORAGE_GLOBAL_EVENTS_KEY = "thisKeyIsForLocalStorage"
+  </script>
+
+  <script>
+    async function getDynamicaSrc() {
+      const version = 'latest';
+      const now = Date.now();
+      // const host = 'https://dxa4wb90x7ize.cloudfront.net/stage/';
+      const host = 'https://shop.lululemon.com/static/fmodules/dcp/';
+      const resources = [
+        `https://assets.adobedtm.com/7a84fdea953b/09aece6f582f/launch-e6cc9ebc113b-development.min.js`,
+        `${host}transformation-configs/${version}/transformation-configs-remoteEntry.js?time=${now}`,
+        `${host}validation-configs/${version}/validation-configs-remoteEntry.js?time=${now}`,
+        `${host}lam-model/${version}/lam-model-remoteEntry.js?time=${now}`,
+        `${host}experiment-module/${version}/experiment-module-remoteEntry.js?time=${now}`,
+        `${host}%40lululemon/mwa-analytics/latest/browser/mwa-analytics.js?time=${now}`,
+        `setupLocalstorage.js`,
+        `version5.js`,
+        `memory.js`
+      ];
+      resources.forEach((thing) => {
+        console.log("load resource: " + thing) 
+        const script = document.createElement('script');
+        script.src = thing;
+        document.head.appendChild(script);
+
+      });
+    }
+  </script>
+</head>
+
+<body>
+  <div id="showThis">
+    <button onClick="loadGui()" class="meta">Load gui</button>
+!
+    <a
+      href="https://stackblitz.com/edit/stackblitz-webcontainer-api-starter-47bkwn?file=README.md,index.html">stackblitz</a>
+
+    <a href="https://github.com/mulefish/stackblitz-webcontainer-api-TDR">github</a>
+
+    <a
+      href="https://lululemon.atlassian.net/wiki/spaces/DCP/pages/2967410421/TDR+Web+NA+-+Reviews+Funnel+Tracking">TDR</a>
+    <hr />
+    <h3 id="seconds">0</h3>
+  </div>
+  <div id="hideThis">
+    <button onClick="flattenCategoricalOptionalityObjects()" class="meta">
+      CategoricalOptionalityObjects
+    </button>
+    <button onClick="flattenTransformationModule_defaultCategorizedEvents()" class="meta">
+      TransformationModule.defaultCategorizedEvents
+    </button>
+    <button onClick="setStore()" class="meta">Set tmp</button>
+    <button onClick="getStore()" class="meta">Get tmp</button>
+    <button onClick="showTdr()" class="meta">TDR</button>
+    <button onClick="launchModal()" class="meta">Memory</button>
+    &nbsp;<span id="statusOfTheSend">&nbsp;</span>
+
+    <!-- TODO: Get rid of 'buttons' - this is a left-over idea. First, talk w/ Shane and Francis -->
+    <!-- <div id="buttons"></div> -->
+    <!-- NOTE: There is likely some orphan functions in 'version5.js' now that I've disabled the 'buttons' idea.
+    But I am keeping that code in because that was the first pass at 100% automation. -->
+
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <iframe id='modalContent' src="modal.html"></iframe>
+      </div>
+    </div>
+    <table border="1" id="core_table">
+      <tr>
+        <td id="left_td" valign="top">
+
+          <table border="1">
+            <tr>
+              <td valign="top">
+                <select size="14" id="definedEventsSelector" onchange="handleSelectChange()">
+                </select>
+              </td>
+              <td valign="top">
+                <table border="1">
+                  <tr>
+                    <td><b>Title</b></td>
+                    <td><input class="inputs" type="text" id="title" value=""></td>
+                  </tr>
+                  <tr>
+                    <td><b>Bday</b></td>
+                    <td id="creationDate"></td>
+                  </tr>
+                  <tr>
+                    <td><b>Event</b></td>
+                    <td><input class="inputs" type="text" id="event" value=""></td>
+                  </tr>
+                  <tr>
+                    <td><button onClick="save()" class="meta">Save</button></td>
+                    <td><button onClick="beautify()" class="meta">Beautify</button></td>
+                  </tr>
+                  <tr>
+                    <td><button onClick="sendIt()" class="meta">
+                        <h3>Send</h3>
+                      </button></td>
+
+                  </tr>
+
+            </tr>
+            <tr>
+              <td colspan="2">
+                <div id="feedback"></div>
+              </td>
+            </tr>
+          </table>
+
+        </td>
+      </tr>
+    </table>
+
+
+    <hr>
+    <textarea id="editableJsonTextarea" spellcheck="false"></textarea>
+    </td>
+    <td id="right_td" valign="top">
+      <textarea id="bottom_right_textArea" spellcheck="false"></textarea>
+
+    </td>
+    </tr>
+    </table>
+  </div>
+  <script>
+    const categoricalHoH = {};
+    const otherObjects_thatNeedAName = {};
+    let lookup = {};
+    let currentEventName = '';
+    let everything = {};
+
+    async function setEverything(gaintBallOfJson) {
+      everything = gaintBallOfJson;
+    }
+
+    function getAllNeededNamedEvents() {
+      let seen = {};
+      const coo = Object.keys(everything['categoricalOptionalityObjects']);
+      coo.forEach((thing, i) => {
+
+        const payloads = Object.keys(
+          everything['categoricalOptionalityObjects'][thing]['default'][
+          'payload'
+          ]
+        );
+        payloads.forEach((payload) => {
+          if (seen.hasOwnProperty(payload)) {
+            seen[payload]++;
+          } else {
+            seen[payload] = 1;
+          }
+        });
+      });
+      return seen;
+    }
+
+    function flatten(objectToFlatten) {
+      // This will not be used in the logic of the page - but it will be helpful to put this page together
+      function flattenObject(obj) {
+        const accumulator = {};
+        for (let key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            if (typeof obj[key] == 'object' && obj[key] != null) {
+              const flatObject = flattenObject(obj[key]);
+              for (let x in flatObject) {
+                if (flatObject.hasOwnProperty(x)) {
+                  accumulator[key + '.' + x] = flatObject[x];
+                }
+              }
+            } else {
+              accumulator[key] = obj[key];
+            }
+          }
+        }
+        return accumulator;
+      }
+      return flattenObject(objectToFlatten);
+    }
+
+
+    function inflateObject(eventType) {
+      const EVENT_TYPE = eventType.toUpperCase();
+      const tmp = flatten(everything[EVENT_TYPE]);
+      const seen = {};
+      for (let k in tmp) {
+        if (k.includes('zodValidationFn')) {
+          // ignore it
+        } else {
+          seen[k] = tmp[k];
+        }
+      }
+      return seen;
+    }
+
+    function loadGui() {
+      document.getElementById('showThis').style.display = 'none';
+      document.getElementById('hideThis').style.display = 'block';
+      clearInterval(secondCounter);
+      loadMwaAnalytics();
+    }
+    const secondsElement = document.getElementById('seconds');
+    const stopButton = document.getElementById('stop');
+    let seconds = 0;
+    let secondCounter = setInterval(() => {
+      seconds++;
+      secondsElement.innerText = seconds;
+    }, 1000);
+
+    async function loadMwaAnalytics() {
+      try {
+        await MwaAnalytics.initializeAnalytics('TEST', {}, [], true);
+        await setEverything(self.validationModule);
+        let namedEvents = Object.keys(
+          everything['categoricalOptionalityObjects']
+        );
+        const ignore = ['general-component-interaction'];
+        namedEvents = namedEvents.filter((x) => !ignore.includes(x));
+        const namedEventKeys = getAllNeededNamedEvents();
+        for (let namedEvent in namedEventKeys) {
+          const x = inflateObject(namedEvent);
+          lookup[namedEvent] = x;
+        }
+        // 
+        const rawString = localStorage.getItem(LOCAL_STORAGE_GLOBAL_EVENTS_KEY)
+        const eventsFromLocalStorage = JSON.parse(rawString)
+
+        // let buttons = '';
+        let added = 0
+        namedEvents.forEach((event) => {
+          // buttons += `<button onClick='loadThisEvent("${event}")'>${event}</button>`;
+          if (!eventsFromLocalStorage.hasOwnProperty(event)) {
+            const created = getPrettyDate()
+            eventsFromLocalStorage[event] = {
+              "title": event,
+              "event": event,
+              "created": created,
+              "json": getThisEvent(event)
+            }
+            log("New event detected: adding " + eventsFromLocalStorage[event].title)
+            added++
+          }
+        });
+        if (added > 0) {
+          localStorage.setItem(LOCAL_STORAGE_GLOBAL_EVENTS_KEY, JSON.stringify(eventsFromLocalStorage));
+          populateDropdown()
+        }
+        // document.getElementById('buttons').innerHTML = buttons;
+      } catch (boom) {
+        alert(boom);
+        console.log(boom);
+      }
+    }
+
+    getDynamicaSrc();
+  </script>
+</body>
+
+</html>
